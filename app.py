@@ -721,6 +721,7 @@ spaces_df = load_parquet("spaces.parquet", file_mtime=_parquet_mtime("spaces.par
 cards_df = load_parquet("model_cards.parquet", file_mtime=_parquet_mtime("model_cards.parquet"))
 pypi_recent_df = load_parquet("pypi_recent.parquet", file_mtime=_parquet_mtime("pypi_recent.parquet"))
 pypi_daily_df = load_parquet("pypi_downloads.parquet", file_mtime=_parquet_mtime("pypi_downloads.parquet"))
+pypi_system_df = load_parquet("pypi_system.parquet", file_mtime=_parquet_mtime("pypi_system.parquet"))
 fw_counts_df = load_parquet("framework_counts.parquet", file_mtime=_parquet_mtime("framework_counts.parquet"))
 reddit_df = load_parquet("reddit_mentions.parquet", file_mtime=_parquet_mtime("reddit_mentions.parquet"))
 gh_counts_df = load_parquet("github_mention_counts.parquet", file_mtime=_parquet_mtime("github_mention_counts.parquet"))
@@ -1597,6 +1598,101 @@ with st.expander("2 — Developer Intent", expanded=True):
                 ].copy()
                 show = show.sort_values("last_month", ascending=False).reset_index(drop=True)
                 st.dataframe(show, use_container_width=True, hide_index=True)
+
+    # ── PyPI developer profile (OS breakdown) ───────────────────────
+    with st.expander("Developer profile (OS breakdown)", expanded=False):
+        st.markdown("#### Who's installing? — Linux vs Windows vs macOS")
+        st.caption(
+            "Linux-dominant installs suggest CI/CD pipelines and server-side enterprise use. "
+            "macOS/Windows-dominant installs suggest individual developers on local machines. "
+            "Source: pypistats.org /system endpoint."
+        )
+        if pypi_system_df.empty:
+            st.info("No PyPI system data. Run `python collect_pypi.py --system-only` to collect.")
+        else:
+            _sys = pypi_system_df.copy()
+            _sys["date"] = pd.to_datetime(_sys["date"], errors="coerce")
+            # Normalize OS names
+            _sys["os"] = _sys["category"].fillna("unknown").replace({
+                "Darwin": "macOS", "null": "unknown",
+            })
+
+            # Aggregate last 30 days per vendor + OS
+            _sys_cutoff = _sys["date"].max() - pd.Timedelta(days=30)
+            _sys_recent = _sys[_sys["date"] >= _sys_cutoff]
+
+            # --- Per-vendor OS split (stacked bar) ---
+            _vendor_os = (
+                _sys_recent.groupby(["vendor", "os"], as_index=False)["downloads"]
+                .sum()
+            )
+            # Calculate percentages
+            _vendor_totals = _vendor_os.groupby("vendor")["downloads"].transform("sum")
+            _vendor_os["pct"] = (_vendor_os["downloads"] / _vendor_totals * 100).round(1)
+
+            _os_colors = {"Linux": "#F4A460", "Windows": "#4682B4", "macOS": "#A9A9A9", "other": "#D3D3D3", "unknown": "#EEEEEE"}
+
+            fig_os = px.bar(
+                _vendor_os, x="vendor", y="downloads", color="os",
+                color_discrete_map=_os_colors,
+                barmode="stack",
+                text="pct",
+            )
+            fig_os.update_traces(texttemplate="%{text:.0f}%", textposition="inside")
+            fig_os.update_layout(
+                xaxis_title="", yaxis_title="Downloads (last 30d)",
+                legend_title_text="OS", yaxis_type="log",
+            )
+            st.plotly_chart(fig_os, use_container_width=True)
+
+            # --- Linux % summary table ---
+            st.markdown("##### Linux share by vendor (proxy for enterprise/CI adoption)")
+            _linux_pct = (
+                _vendor_os.pivot_table(index="vendor", columns="os", values="downloads", aggfunc="sum", fill_value=0)
+                .reset_index()
+            )
+            _os_cols = [c for c in ["Linux", "Windows", "macOS", "other", "unknown"] if c in _linux_pct.columns]
+            _linux_pct["total"] = _linux_pct[_os_cols].sum(axis=1)
+            if "Linux" in _linux_pct.columns:
+                _linux_pct["linux_pct"] = (_linux_pct["Linux"] / _linux_pct["total"] * 100).round(1)
+            else:
+                _linux_pct["linux_pct"] = 0.0
+            _linux_pct = _linux_pct.sort_values("linux_pct", ascending=False)
+            _show_cols = ["vendor", "total"] + _os_cols + ["linux_pct"]
+            _show_cols = [c for c in _show_cols if c in _linux_pct.columns]
+            st.dataframe(
+                _linux_pct[_show_cols].rename(columns={
+                    "vendor": "Vendor", "total": "Total (30d)", "linux_pct": "Linux %",
+                }),
+                use_container_width=True, hide_index=True,
+            )
+
+            # --- Per-package breakdown (top packages) ---
+            st.markdown("##### Per-package OS split (top 15 by volume)")
+            _pkg_os = (
+                _sys_recent.groupby(["package", "vendor", "os"], as_index=False)["downloads"]
+                .sum()
+            )
+            _pkg_totals = _pkg_os.groupby("package")["downloads"].transform("sum")
+            _pkg_os["pct"] = (_pkg_os["downloads"] / _pkg_totals * 100).round(1)
+            _top_pkgs = (
+                _pkg_os.groupby("package")["downloads"].sum()
+                .nlargest(15).index.tolist()
+            )
+            _pkg_os_top = _pkg_os[_pkg_os["package"].isin(_top_pkgs)]
+            fig_pkg_os = px.bar(
+                _pkg_os_top, x="package", y="downloads", color="os",
+                color_discrete_map=_os_colors,
+                barmode="stack",
+                text="pct",
+            )
+            fig_pkg_os.update_traces(texttemplate="%{text:.0f}%", textposition="inside")
+            fig_pkg_os.update_layout(
+                xaxis_title="", yaxis_title="Downloads (last 30d, log)",
+                legend_title_text="OS", yaxis_type="log",
+                xaxis_tickangle=-45,
+            )
+            st.plotly_chart(fig_pkg_os, use_container_width=True)
 
     # ── Reddit mentions ──────────────────────────────────────────────
     with st.expander("Reddit mentions", expanded=True):

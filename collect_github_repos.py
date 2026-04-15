@@ -289,11 +289,14 @@ def fetch_forks(repo: str, vendor: str = "", affinity: str = "native") -> list[d
                 break
 
             for item in data:
+                owner = item.get("owner") or {}
                 items.append({
                     "repo": repo,
                     "vendor": vendor,
                     "affinity": affinity,
                     "forked_at": item.get("created_at"),
+                    "owner_type": owner.get("type", ""),       # "User" or "Organization"
+                    "owner_login": owner.get("login", ""),
                 })
 
         except Exception as e:

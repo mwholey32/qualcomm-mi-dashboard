@@ -38,6 +38,7 @@ DATA_DIR.mkdir(exist_ok=True)
 
 RECENT_PATH = DATA_DIR / "pypi_recent.parquet"
 DAILY_PATH = DATA_DIR / "pypi_downloads.parquet"
+SYSTEM_PATH = DATA_DIR / "pypi_system.parquet"
 
 
 @dataclass(frozen=True)
@@ -179,6 +180,7 @@ PACKAGES: list[PyPIPackage] = [
 
 RECENT_URL = "https://pypistats.org/api/packages/{package}/recent"
 DAILY_URL = "https://pypistats.org/api/packages/{package}/overall"
+SYSTEM_URL = "https://pypistats.org/api/packages/{package}/system"
 REQUEST_DELAY_SEC = 1.0          # Baseline: pypistats is polite but not generous.
 RATE_LIMIT_BACKOFF_SEC = 15.0    # Wait this long after a 429 before retrying.
 MAX_RETRIES = 3
@@ -254,20 +256,44 @@ def fetch_daily(pkg: PyPIPackage) -> pd.DataFrame:
     return df[["package", "vendor", "product", "affinity", "date", "downloads", "fetched_at"]]
 
 
+def fetch_system(pkg: PyPIPackage) -> pd.DataFrame:
+    """Daily downloads broken down by OS (Linux/Windows/Darwin/other)."""
+    data = _get(SYSTEM_URL.format(package=pkg.package))
+    if not data:
+        return pd.DataFrame()
+    rows = data.get("data") or []
+    if not rows:
+        return pd.DataFrame()
+    df = pd.DataFrame(rows)
+    if "category" not in df.columns:
+        return pd.DataFrame()
+    # category values: Linux, Windows, Darwin, other, null
+    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    df["downloads"] = pd.to_numeric(df["downloads"], errors="coerce").fillna(0).astype(int)
+    df["package"] = pkg.package
+    df["vendor"] = pkg.vendor
+    df["product"] = pkg.product
+    df["affinity"] = pkg.affinity
+    df["fetched_at"] = datetime.now(timezone.utc)
+    return df[["package", "vendor", "product", "affinity", "date", "category", "downloads", "fetched_at"]]
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--recent-only", action="store_true")
     parser.add_argument("--daily-only", action="store_true")
+    parser.add_argument("--system-only", action="store_true")
     args = parser.parse_args()
 
-    do_recent = not args.daily_only
-    do_daily = not args.recent_only
+    do_recent = not args.daily_only and not args.system_only
+    do_daily = not args.recent_only and not args.system_only
+    do_system = args.system_only or (not args.recent_only and not args.daily_only)
 
     print(f"\n=== PyPI collection run @ {datetime.now(timezone.utc).isoformat()} ===")
     print(f"Packages: {len(PACKAGES)}")
 
     if do_recent:
-        print("\n[1/2] Recent (last day / week / month)")
+        print("\n[1/3] Recent (last day / week / month)")
         recent_rows: list[dict] = []
         for i, pkg in enumerate(PACKAGES, 1):
             row = fetch_recent(pkg)
@@ -285,7 +311,7 @@ def main() -> int:
             print(f"  -> saved {len(recent_rows)} rows to {RECENT_PATH}")
 
     if do_daily:
-        print("\n[2/2] Daily historical (~180 days per package)")
+        print("\n[2/3] Daily historical (~180 days per package)")
         frames: list[pd.DataFrame] = []
         for i, pkg in enumerate(PACKAGES, 1):
             df = fetch_daily(pkg)
@@ -304,6 +330,26 @@ def main() -> int:
             combined = pd.concat(frames, ignore_index=True)
             combined.to_parquet(DAILY_PATH, index=False)
             print(f"\n  -> saved {len(combined)} rows to {DAILY_PATH}")
+
+    if do_system:
+        print("\n[3/3] System breakdown (Linux/Windows/macOS per package)")
+        sys_frames: list[pd.DataFrame] = []
+        for i, pkg in enumerate(PACKAGES, 1):
+            df = fetch_system(pkg)
+            if df.empty:
+                print(f"  [{i:>2}/{len(PACKAGES)}] {pkg.package:<32} no data")
+            else:
+                # Summarize latest month by OS
+                recent = df[df["date"] >= df["date"].max() - pd.Timedelta(days=30)]
+                os_totals = recent.groupby("category")["downloads"].sum()
+                summary = "  ".join(f"{k}={v:>,}" for k, v in os_totals.items())
+                print(f"  [{i:>2}/{len(PACKAGES)}] {pkg.package:<32} {summary}")
+                sys_frames.append(df)
+            time.sleep(REQUEST_DELAY_SEC)
+        if sys_frames:
+            combined = pd.concat(sys_frames, ignore_index=True)
+            combined.to_parquet(SYSTEM_PATH, index=False)
+            print(f"\n  -> saved {len(combined)} rows to {SYSTEM_PATH}")
 
     print("\nDone.")
     return 0

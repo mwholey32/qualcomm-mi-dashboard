@@ -63,6 +63,8 @@ REPOS: list[dict[str, str]] = [
     # Google — edge AI
     {"repo": "google-ai-edge/ai-edge-torch",  "vendor": "Google",   "role": "PyTorch-to-TFLite compiler", "affinity": "abstracted"},
     {"repo": "google-ai-edge/mediapipe",      "vendor": "Google",   "role": "on-device ML pipelines",    "affinity": "abstracted"},
+    {"repo": "google-ai-edge/LiteRT",         "vendor": "Google",   "role": "TFLite / LiteRT runtime",   "affinity": "abstracted"},
+    {"repo": "jax-ml/jax",                    "vendor": "Google",   "role": "array + autodiff / XLA",    "affinity": "abstracted"},
     # Intel — edge / hybrid
     {"repo": "openvinotoolkit/openvino",      "vendor": "Intel",    "role": "inference engine (CPU/GPU/NPU)", "affinity": "native"},
     {"repo": "intel/neural-compressor",       "vendor": "Intel",    "role": "quantization toolkit",      "affinity": "native"},

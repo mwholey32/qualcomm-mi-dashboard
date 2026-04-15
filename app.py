@@ -800,21 +800,32 @@ TIME_OPTIONS = {
     "1 year": 365,
 }
 
-with st.sidebar:
-    st.markdown(
-        '<div style="padding:0.3rem 0 0.1rem;">'
-        '<div style="font-size:1.05rem;font-weight:700;color:#1a1a1a;letter-spacing:-0.01em;">Developer Ecosystem</div>'
-        '<div style="font-size:0.62rem;color:#999;text-transform:uppercase;letter-spacing:0.08em;margin-top:2px;">On-device AI Market Intelligence</div>'
-        '</div>',
-        unsafe_allow_html=True,
-    )
+MODEL_TYPE_OPTIONS = [
+    "text-generation",
+    "image-text-to-text",
+    "image-classification",
+    "automatic-speech-recognition",
+    "text-to-image",
+    "sentence-similarity",
+    "feature-extraction",
+    "text-classification",
+    "object-detection",
+    "image-segmentation",
+    "text-to-speech",
+    "token-classification",
+]
 
+# ---------------------------------------------------------------------------
+# Page header (replaces sidebar)
+# ---------------------------------------------------------------------------
+_hdr_left, _hdr_right = st.columns([3, 1])
+with _hdr_left:
+    st.markdown("## Developer Ecosystem")
+    st.caption("On-device AI Market Intelligence")
     meta = load_run_metadata()
     _last_run = meta.get("run_finished_utc", "unknown") if meta else "unknown"
-    st.markdown(
-        f'<div style="font-size:0.68rem;color:#999;margin:0.5rem 0 0.15rem;">Last refresh: {_last_run}</div>',
-        unsafe_allow_html=True,
-    )
+    st.caption(f"Last refresh: {_last_run}")
+with _hdr_right:
     if st.button("Refresh data", key="refresh_btn"):
         import subprocess
         with st.spinner("Running collectors..."):
@@ -840,177 +851,15 @@ with st.sidebar:
             )
             st.cache_data.clear()
             st.rerun()
-    st.markdown('<hr style="margin:0.5rem 0;border-color:#e0e0e0;">', unsafe_allow_html=True)
-
-    # ── Time window filter ────────────────────────────────────────────
-    with st.expander("Time window", expanded=True):
-        time_label = st.select_slider(
-            "Window",
-            options=list(TIME_OPTIONS.keys()),
-            value="3 months",
-        )
-        window_days = TIME_OPTIONS[time_label]
-
-    # ── Vendor filter ─────────────────────────────────────────────────
-    with st.expander("Vendors", expanded=True):
-        # Collect all checkbox keys for global All/None
-        _all_vendor_cb_keys: list[str] = []
-        for v in ALL_VENDORS:
-            fams = _vendor_families.get(v, {})
-            if fams:
-                for fam in sorted(fams.keys()):
-                    _all_vendor_cb_keys.append(f"vf__{v}__{fam}")
-            else:
-                _all_vendor_cb_keys.append(f"v__{v}")
-
-        _all_none_buttons("v__all", "v__none", _all_vendor_cb_keys)
-
-        selected_vendors: list[str] = []
-        selected_vendor_families: dict[str, list[str]] = {}
-
-        for vendor in ALL_VENDORS:
-            families = _vendor_families.get(vendor, {})
-
-            if families:
-                fam_list = sorted(families.keys())
-                fam_keys = [f"vf__{vendor}__{f}" for f in fam_list]
-
-                with st.expander(vendor, expanded=False):
-                    _all_none_buttons(
-                        f"vfa__{vendor}", f"vfn__{vendor}", fam_keys,
-                    )
-                    checked_fams: list[str] = []
-                    for fam in fam_list:
-                        cb_key = f"vf__{vendor}__{fam}"
-                        if cb_key not in st.session_state:
-                            st.session_state[cb_key] = True
-                        if st.checkbox(fam, key=cb_key):
-                            checked_fams.append(fam)
-                    if checked_fams:
-                        selected_vendors.append(vendor)
-                        selected_vendor_families[vendor] = checked_fams
-            else:
-                cb_key = f"v__{vendor}"
-                if cb_key not in st.session_state:
-                    st.session_state[cb_key] = True
-                if st.checkbox(vendor, key=cb_key):
-                    selected_vendors.append(vendor)
-
-    # ── Application tier filter ───────────────────────────────────────
-    with st.expander("Application tier", expanded=True):
-        _tier_options = ["On-device", "Edge / hybrid", "Datacenter"]
-        _tier_keys = [f"t__{t}" for t in _tier_options]
-        _all_none_buttons("t__all", "t__none", _tier_keys)
-
-        selected_tiers: list[str] = []
-        for t in _tier_options:
-            cb_key = f"t__{t}"
-            if cb_key not in st.session_state:
-                st.session_state[cb_key] = True
-            if st.checkbox(t, key=cb_key):
-                selected_tiers.append(t)
-
-    # ── Model type filter ────────────────────────────────────────────
-    # Top pipeline_tags by frequency across vendor + framework data
-    _MODEL_TYPE_OPTIONS = [
-        "text-generation",
-        "image-text-to-text",
-        "image-classification",
-        "automatic-speech-recognition",
-        "text-to-image",
-        "sentence-similarity",
-        "feature-extraction",
-        "text-classification",
-        "object-detection",
-        "image-segmentation",
-        "text-to-speech",
-        "token-classification",
-    ]
-    with st.expander("Model type", expanded=False):
-        _mt_keys = [f"mt__{t}" for t in _MODEL_TYPE_OPTIONS]
-        _all_none_buttons("mt__all", "mt__none", _mt_keys)
-
-        selected_model_types: list[str] = []
-        for mt in _MODEL_TYPE_OPTIONS:
-            cb_key = f"mt__{mt}"
-            if cb_key not in st.session_state:
-                st.session_state[cb_key] = True
-            if st.checkbox(mt, key=cb_key):
-                selected_model_types.append(mt)
-
-        # Track whether any model type is unchecked (i.e. filter is active)
-        _mt_filter_active = len(selected_model_types) < len(_MODEL_TYPE_OPTIONS)
-
-
-# ---------------------------------------------------------------------------
-# Apply global filters to datasets
-# ---------------------------------------------------------------------------
-
-# Stage 2 (HF models): vendor + family filter
-f_vendor_df = apply_vendor_filter_source(vendor_df, selected_vendors)
-f_vendor_df = apply_family_filter(
-    f_vendor_df, product_long, selected_vendors,
-    selected_vendor_families, _vendor_families,
-)
-f_product_long = apply_vendor_filter(product_long, "vendor", selected_vendors)
-if selected_vendor_families:
-    # Also narrow product_long to match selected families
-    _fam_mask = pd.Series(False, index=f_product_long.index)
-    for _v, _fams in selected_vendor_families.items():
-        if _v in _vendor_families and set(_fams) != set(_vendor_families[_v].keys()):
-            _fam_mask |= (f_product_long["vendor"] == _v) & (f_product_long["family"].isin(_fams))
-        else:
-            _fam_mask |= (f_product_long["vendor"] == _v)
-    # Include vendors without taxonomy
-    for _v in selected_vendors:
-        if _v not in selected_vendor_families:
-            _fam_mask |= (f_product_long["vendor"] == _v)
-    f_product_long = f_product_long[_fam_mask]
-
-# Stage 2 (frameworks): tier filter only
-f_framework_df, f_fw_counts_df = apply_tier_filter(framework_df, fw_counts_df, selected_tiers)
-
-# Stage 2: model type (pipeline_tag) filter
-if _mt_filter_active and selected_model_types:
-    if not f_vendor_df.empty and "pipeline_tag" in f_vendor_df.columns:
-        f_vendor_df = f_vendor_df[
-            f_vendor_df["pipeline_tag"].isin(selected_model_types)
-        ]
-    if not f_framework_df.empty and "pipeline_tag" in f_framework_df.columns:
-        f_framework_df = f_framework_df[
-            f_framework_df["pipeline_tag"].isin(selected_model_types)
-        ]
-elif _mt_filter_active and not selected_model_types:
-    f_vendor_df = f_vendor_df.iloc[0:0]
-    f_framework_df = f_framework_df.iloc[0:0]
-
-# Stages 3-5: vendor filter only (family granularity not available)
-f_pypi_daily = apply_vendor_filter(pypi_daily_df, "vendor", selected_vendors)
-f_pypi_recent = apply_vendor_filter(pypi_recent_df, "vendor", selected_vendors)
-f_reddit_df = apply_vendor_filter(reddit_df, "vendor", selected_vendors)
-f_gh_counts_df = apply_vendor_filter(gh_counts_df, "vendor", selected_vendors)
-f_gh_detail_df = apply_vendor_filter(gh_detail_df, "vendor", selected_vendors)
-f_gh_repo_stats_df = apply_vendor_filter(gh_repo_stats_df, "vendor", selected_vendors)
-f_gh_issue_topics_df = apply_vendor_filter(gh_issue_topics_df, "vendor", selected_vendors)
-f_gh_stargazers_df = apply_vendor_filter(gh_stargazers_df, "vendor", selected_vendors)
-f_gh_forks_df = apply_vendor_filter(gh_forks_df, "vendor", selected_vendors)
-f_playstore_df = apply_vendor_filter(playstore_df, "vendor", selected_vendors)
-f_design_wins_df = apply_vendor_filter(design_wins_df, "chipset_vendor", selected_vendors)
-# Benchmark data: show all vendors for cross-vendor hardware comparison
-# (not filtered by sidebar vendor selection)
-f_mlperf_df = mlperf_df
-f_ai_bench_df = ai_bench_df
-f_geekbench_df = geekbench_df
 
 
 if not has_data:
     no_data_banner()
     st.stop()
 
-if not selected_vendors:
-    st.warning("No vendors selected. Use the sidebar to select at least one vendor.")
-    st.stop()
-
+# Default time window for sections without local time controls
+window_days = 90
+time_label = "3 months"
 
 # ===========================================================================
 # STAGE 2 · SUPPLY — publishing, runtimes, deployment tier, products
@@ -1019,19 +868,45 @@ if not selected_vendors:
 with st.expander("Stage 2 — Supply / Publishing", expanded=True):
     stage_header("stage2")
 
-    # ── Publishing velocity ──────────────────────────────────────────
-    with st.expander("Publishing velocity", expanded=True):
-        st.markdown(f"#### Publishing velocity — last {window_days} days")
-        vel2 = analyze.vendor_velocity(f_vendor_df, window_days=window_days)
+    # ── Publishing Velocity ──────────────────────────────────────────
+    with st.expander("Publishing Velocity", expanded=True):
+        # --- Local filters ---
+        _pv_all_vendors = sorted(
+            vendor_df["source"].str.replace("vendor:", "", regex=False).unique()
+        ) if not vendor_df.empty else []
+        _pv_c1, _pv_c2 = st.columns([1, 3])
+        with _pv_c1:
+            _pv_time = st.select_slider("Time window", options=list(TIME_OPTIONS.keys()), value="3 months", key="pv_time")
+            _pv_window = TIME_OPTIONS[_pv_time]
+        with _pv_c2:
+            _pv_vendors = st.multiselect("Vendors", options=_pv_all_vendors, default=_pv_all_vendors, key="pv_vendors")
+        _pv_c3, _pv_c4 = st.columns(2)
+        with _pv_c3:
+            _pv_tiers = st.multiselect("Tier", options=["On-device", "Edge / hybrid", "Datacenter"], default=["On-device", "Edge / hybrid", "Datacenter"], key="pv_tiers")
+        with _pv_c4:
+            _pv_types = st.multiselect("Model type", options=MODEL_TYPE_OPTIONS, default=MODEL_TYPE_OPTIONS, key="pv_types")
+
+        # --- Apply filters ---
+        _pv_df = apply_vendor_filter_source(vendor_df, _pv_vendors)
+        _pv_df = apply_family_filter(_pv_df, product_long, _pv_vendors, {}, _vendor_families)
+        _pv_mt_active = len(_pv_types) < len(MODEL_TYPE_OPTIONS)
+        if _pv_mt_active and _pv_types:
+            if not _pv_df.empty and "pipeline_tag" in _pv_df.columns:
+                _pv_df = _pv_df[_pv_df["pipeline_tag"].isin(_pv_types)]
+        elif _pv_mt_active and not _pv_types:
+            _pv_df = _pv_df.iloc[0:0]
+
+        st.markdown(f"#### Publishing velocity — last {_pv_window} days")
+        vel2 = analyze.vendor_velocity(_pv_df, window_days=_pv_window)
         if vel2.empty:
             st.info("No vendor velocity data for selected vendors.")
         else:
             fig_p = px.bar(
                 vel2,
                 x="vendor",
-                y=f"new_in_{window_days}d",
-                text=f"new_in_{window_days}d",
-                title=f"New models by vendor org in last {window_days} days",
+                y=f"new_in_{_pv_window}d",
+                text=f"new_in_{_pv_window}d",
+                title=f"New models by vendor org in last {_pv_window} days",
                 color="vendor",
                 color_discrete_map=VENDOR_COLOR,
             )
@@ -1042,7 +917,7 @@ with st.expander("Stage 2 — Supply / Publishing", expanded=True):
 
         st.markdown("#### Publishing by deployment tier")
         vt = analyze.vendor_tier_breakdown(
-            apply_time_filter(f_vendor_df, "created_at", window_days),
+            apply_time_filter(_pv_df, "created_at", _pv_window),
             product_long,
         )
         if not vt.empty:
@@ -1052,7 +927,7 @@ with st.expander("Stage 2 — Supply / Publishing", expanded=True):
                 y="models",
                 color="tier",
                 text="models",
-                title=f"New models by vendor × deployment tier (last {window_days} days)",
+                title=f"New models by vendor × deployment tier (last {_pv_window} days)",
                 color_discrete_map=TIER_COLOR,
                 barmode="stack",
                 category_orders={"tier": ["On-device", "Edge / hybrid", "Datacenter", "Unclassified"]},
@@ -1072,11 +947,11 @@ with st.expander("Stage 2 — Supply / Publishing", expanded=True):
             st.info("No publishing data in this time window.")
 
         st.markdown("#### Weekly publishing timeline")
-        tl = analyze.vendor_publish_timeline(f_vendor_df, freq="W")
+        tl = analyze.vendor_publish_timeline(_pv_df, freq="W")
         if not tl.empty:
             # Apply time filter to timeline
             tl["period"] = pd.to_datetime(tl["period"])
-            cutoff = pd.Timestamp.now(tz="UTC") - pd.Timedelta(days=window_days)
+            cutoff = pd.Timestamp.now(tz="UTC") - pd.Timedelta(days=_pv_window)
             tl = tl[tl["period"] >= cutoff.tz_localize(None)]
             if not tl.empty:
                 fig_tl = px.line(
@@ -1093,7 +968,7 @@ with st.expander("Stage 2 — Supply / Publishing", expanded=True):
     # ── Runtimes ─────────────────────────────────────────────────────
     with st.expander("Runtimes", expanded=True):
         st.markdown("#### Share of runtime — model counts by framework tag")
-        fw_summ = analyze.framework_summary(f_framework_df, f_fw_counts_df)
+        fw_summ = analyze.framework_summary(framework_df, fw_counts_df)
         if fw_summ.empty:
             st.info("No framework data for selected tiers.")
         else:
@@ -1128,7 +1003,7 @@ with st.expander("Stage 2 — Supply / Publishing", expanded=True):
             st.plotly_chart(fig_fw2, use_container_width=True)
 
             st.markdown("#### Framework velocity")
-            fw_vel = analyze.framework_velocity(f_framework_df, window_days=window_days)
+            fw_vel = analyze.framework_velocity(framework_df, window_days=window_days)
             if not fw_vel.empty:
                 fig_fwv = px.bar(
                     fw_vel,
@@ -1145,8 +1020,8 @@ with st.expander("Stage 2 — Supply / Publishing", expanded=True):
                 st.plotly_chart(fig_fwv, use_container_width=True)
 
         st.markdown("#### Hardware keyword mining (tags + repo names)")
-        combined = pd.concat([f_vendor_df, f_framework_df], ignore_index=True) \
-            if not (f_vendor_df.empty and f_framework_df.empty) else pd.DataFrame()
+        combined = pd.concat([vendor_df, framework_df], ignore_index=True) \
+            if not (vendor_df.empty and framework_df.empty) else pd.DataFrame()
         kw = analyze.tag_keyword_counts(combined)
         if not kw.empty:
             fig_kw = px.bar(
@@ -1175,8 +1050,8 @@ with st.expander("Stage 2 — Supply / Publishing", expanded=True):
             "that commonly hit NPUs via delegates (ONNX, GGUF, OpenVINO). "
             "**Datacenter** = server GPU (CUDA / TensorRT)."
         )
-        tier_df2 = analyze.classify_deployment(f_framework_df, f_fw_counts_df)
-        tier_tot = analyze.tier_totals(f_framework_df, f_fw_counts_df)
+        tier_df2 = analyze.classify_deployment(framework_df, fw_counts_df)
+        tier_tot = analyze.tier_totals(framework_df, fw_counts_df)
         if tier_df2.empty:
             st.info("No framework data for selected tiers.")
         else:
@@ -1211,15 +1086,19 @@ with st.expander("Stage 2 — Supply / Publishing", expanded=True):
             "Model counts show what vendors **publish** (supply). Downloads "
             "show what developers actually **use** (demand). The gap analysis "
             "combines both: a high-download type where Qualcomm has zero models "
-            "is an addressable opportunity. Model type sidebar filter is **not** "
-            "applied here — this view always shows all types for comparison."
+            "is an addressable opportunity. This view always shows all types "
+            "for comparison."
         )
 
-        # Use unfiltered vendor_df (with vendor filter but NOT model-type filter)
-        _mt_vdf = apply_vendor_filter_source(vendor_df, selected_vendors)
+        # --- Local vendor filter ---
+        _mt_all_vendors = sorted(
+            vendor_df["source"].str.replace("vendor:", "", regex=False).unique()
+        ) if not vendor_df.empty else []
+        _mt_vendors = st.multiselect("Vendors", options=_mt_all_vendors, default=_mt_all_vendors, key="mt_vendors")
+        _mt_vdf = apply_vendor_filter_source(vendor_df, _mt_vendors)
         _mt_vdf = apply_family_filter(
-            _mt_vdf, product_long, selected_vendors,
-            selected_vendor_families, _vendor_families,
+            _mt_vdf, product_long, _mt_vendors,
+            {}, _vendor_families,
         )
 
         if _mt_vdf.empty or "pipeline_tag" not in _mt_vdf.columns:
@@ -1534,10 +1413,10 @@ with st.expander("Stage 3 — Developer Intent", expanded=True):
 
     # ── PyPI downloads ───────────────────────────────────────────────
     with st.expander("PyPI downloads", expanded=True):
-        if f_pypi_daily.empty:
+        if pypi_daily_df.empty:
             st.info("No PyPI data for selected vendors.")
         else:
-            _daily = f_pypi_daily.copy()
+            _daily = pypi_daily_df.copy()
             _daily["date"] = pd.to_datetime(_daily["date"])
 
             # Apply time window
@@ -1709,8 +1588,8 @@ with st.expander("Stage 3 — Developer Intent", expanded=True):
                 )
 
             st.markdown("#### All tracked packages")
-            if not f_pypi_recent.empty:
-                show = f_pypi_recent[
+            if not pypi_recent_df.empty:
+                show = pypi_recent_df[
                     ["package", "vendor", "product", "last_day", "last_week", "last_month", "note"]
                 ].copy()
                 show = show.sort_values("last_month", ascending=False).reset_index(drop=True)
@@ -1726,10 +1605,10 @@ with st.expander("Stage 3 — Developer Intent", expanded=True):
             "scored by the community."
         )
 
-        if f_reddit_df.empty:
+        if reddit_df.empty:
             st.info("No Reddit data for selected vendors.")
         else:
-            rdf = f_reddit_df.copy()
+            rdf = reddit_df.copy()
             rdf["created_utc"] = pd.to_datetime(
                 rdf["created_utc"], utc=True, errors="coerce"
             )
@@ -1868,10 +1747,10 @@ with st.expander("Stage 3 — Developer Intent", expanded=True):
             "tried to run a model on Qualcomm hardware."
         )
 
-        if f_gh_counts_df.empty:
+        if gh_counts_df.empty:
             st.info("No GitHub data for selected vendors.")
         else:
-            ghc = f_gh_counts_df.copy()
+            ghc = gh_counts_df.copy()
 
             vendor_totals = (
                 ghc.groupby("vendor", as_index=False)["total_count"]
@@ -1894,8 +1773,8 @@ with st.expander("Stage 3 — Developer Intent", expanded=True):
 
             # --- Weekly time-series: new issues by vendor ---
             st.markdown("##### Vendor share of voice — weekly new issues")
-            if not f_gh_detail_df.empty:
-                _ghd = f_gh_detail_df.copy()
+            if not gh_detail_df.empty:
+                _ghd = gh_detail_df.copy()
                 _ghd["created_at"] = pd.to_datetime(_ghd["created_at"], utc=True, errors="coerce")
                 _cutoff_gh = pd.Timestamp.now(tz="UTC") - pd.Timedelta(days=window_days)
                 _ghd = _ghd[_ghd["created_at"] >= _cutoff_gh]
@@ -1963,8 +1842,8 @@ with st.expander("Stage 3 — Developer Intent", expanded=True):
             )
 
             # Recent Qualcomm issues
-            if not f_gh_detail_df.empty:
-                _gh_det = f_gh_detail_df.copy()
+            if not gh_detail_df.empty:
+                _gh_det = gh_detail_df.copy()
                 _gh_det["created_at"] = pd.to_datetime(
                     _gh_det["created_at"], utc=True, errors="coerce"
                 )
@@ -2004,10 +1883,10 @@ with st.expander("Stage 3 — Developer Intent", expanded=True):
             "discovery and bookmarking, while forks indicate hands-on usage."
         )
 
-        if f_gh_repo_stats_df.empty:
+        if gh_repo_stats_df.empty:
             st.info("No repo stats data for selected vendors.")
         else:
-            _grs = f_gh_repo_stats_df.copy()
+            _grs = gh_repo_stats_df.copy()
             _grs["fetched_at"] = pd.to_datetime(_grs["fetched_at"], utc=True)
             _grs = _grs.sort_values("fetched_at").drop_duplicates(
                 subset=["repo"], keep="last"
@@ -2120,8 +1999,8 @@ with st.expander("Stage 3 — Developer Intent", expanded=True):
                     st.plotly_chart(fig_rf, use_container_width=True)
 
             # -- Open issues over time (from existing issue data) --
-            if not f_gh_issue_topics_df.empty:
-                _iss = f_gh_issue_topics_df.copy()
+            if not gh_issue_topics_df.empty:
+                _iss = gh_issue_topics_df.copy()
                 _iss["created_at"] = pd.to_datetime(_iss["created_at"], utc=True)
                 _iss = _iss[(_iss["created_at"] >= _gh_cutoff) & (_iss["vendor"].isin(_gh_vendors))]
                 _iss["week_created"] = _iss["created_at"].dt.to_period("W").dt.to_timestamp()
@@ -2172,6 +2051,108 @@ with st.expander("Stage 3 — Developer Intent", expanded=True):
                 },
             )
 
+            # -- Developer Engagement Ratio ----------------------------------
+            # Compares time-aligned GitHub engagement (forks + production issues)
+            # against PyPI downloads to measure actual usage per download.
+            st.markdown("##### Developer Engagement Ratio")
+            st.caption(
+                "Measures **actual hands-on usage per download**. "
+                "Forks (experimentation) and production-keyword issues (deployment) "
+                "from the selected time window are divided by PyPI downloads over "
+                "the same period. A higher ratio means a larger share of downloaders "
+                "are actively building — not just installing."
+            )
+
+            # Normalize vendor names between PyPI ("Meta / cross") and GitHub ("Meta")
+            _vendor_norm = {"Meta / cross": "Meta"}
+
+            # PyPI downloads in the time window, by vendor
+            _er_has_pypi = not pypi_daily_df.empty and "date" in pypi_daily_df.columns
+            if _er_has_pypi:
+                _er_pypi = pypi_daily_df.copy()
+                _er_pypi["date"] = pd.to_datetime(_er_pypi["date"], utc=True, errors="coerce")
+                _er_pypi = _er_pypi[_er_pypi["date"] >= _gh_cutoff]
+                _er_pypi["vendor"] = _er_pypi["vendor"].replace(_vendor_norm)
+                _er_dl = _er_pypi.groupby("vendor", as_index=False)["downloads"].sum()
+                _er_dl = _er_dl.rename(columns={"downloads": "downloads"})
+            else:
+                _er_dl = pd.DataFrame(columns=["vendor", "downloads"])
+
+            # Forks in the time window, by vendor
+            if not gh_forks_df.empty:
+                _er_fk = gh_forks_df.copy()
+                _er_fk["forked_at"] = pd.to_datetime(_er_fk["forked_at"], utc=True)
+                _er_fk = _er_fk[_er_fk["forked_at"] >= _gh_cutoff]
+                _er_forks = _er_fk.groupby("vendor", as_index=False).size()
+                _er_forks = _er_forks.rename(columns={"size": "forks"})
+            else:
+                _er_forks = pd.DataFrame(columns=["vendor", "forks"])
+
+            # Production-keyword issues in the time window, by vendor
+            if not gh_issue_topics_df.empty:
+                _er_iss = gh_issue_topics_df.copy()
+                _er_iss["created_at"] = pd.to_datetime(_er_iss["created_at"], utc=True, errors="coerce")
+                _er_iss = _er_iss[(_er_iss["created_at"] >= _gh_cutoff) & (_er_iss["topic_count"] > 0)]
+                _er_prod = _er_iss.groupby("vendor", as_index=False).size()
+                _er_prod = _er_prod.rename(columns={"size": "prod_issues"})
+            else:
+                _er_prod = pd.DataFrame(columns=["vendor", "prod_issues"])
+
+            # Merge all three
+            _er = _er_dl.merge(_er_forks, on="vendor", how="outer") \
+                        .merge(_er_prod, on="vendor", how="outer") \
+                        .fillna(0)
+            for _c in ["downloads", "forks", "prod_issues"]:
+                _er[_c] = _er[_c].astype(int)
+
+            # Filter to selected vendors and require both download + engagement data
+            _er = _er[_er["vendor"].isin(_gh_vendors)]
+            _er = _er[(_er["downloads"] > 0) & ((_er["forks"] + _er["prod_issues"]) > 0)]
+
+            if not _er.empty:
+                _er["engagement"] = _er["forks"] + _er["prod_issues"]
+                _er["ratio"] = (_er["engagement"] / _er["downloads"] * 10_000).round(1)
+                _er = _er.sort_values("ratio", ascending=False)
+
+                fig_er = px.bar(
+                    _er,
+                    x="vendor",
+                    y="ratio",
+                    color="vendor",
+                    text="ratio",
+                    color_discrete_map=VENDOR_COLOR,
+                )
+                fig_er.update_traces(texttemplate="%{text:.1f}", textposition="outside")
+                fig_er.update_layout(
+                    showlegend=False,
+                    xaxis_title="",
+                    yaxis_title=f"Engagement per 10K downloads (last {_gh_time})",
+                    height=400,
+                )
+                st.plotly_chart(fig_er, use_container_width=True)
+
+                st.dataframe(
+                    _er[["vendor", "downloads", "forks", "prod_issues", "engagement", "ratio"]].rename(
+                        columns={
+                            "downloads": f"PyPI downloads ({_gh_time})",
+                            "forks": f"Forks ({_gh_time})",
+                            "prod_issues": f"Prod issues ({_gh_time})",
+                            "engagement": "Engagement (forks + issues)",
+                            "ratio": "Per 10K downloads",
+                        }
+                    ),
+                    use_container_width=True,
+                    hide_index=True,
+                    column_config={
+                        f"PyPI downloads ({_gh_time})": st.column_config.NumberColumn(format="%,d"),
+                        f"Forks ({_gh_time})": st.column_config.NumberColumn(format="%,d"),
+                        f"Prod issues ({_gh_time})": st.column_config.NumberColumn(format="%,d"),
+                        "Engagement (forks + issues)": st.column_config.NumberColumn(format="%,d"),
+                    },
+                )
+            else:
+                st.info("Not enough overlapping PyPI + GitHub data for selected vendors.")
+
     # ── Developer Lock-in Analysis ────────────────────────────────────
     with st.expander("Developer Lock-in Analysis", expanded=True):
         st.markdown("#### Native vs Abstracted Developer Ecosystem")
@@ -2191,11 +2172,11 @@ with st.expander("Stage 3 — Developer Intent", expanded=True):
 
         # --- PyPI Lock-in Split ---
         _has_pypi_affinity = (
-            not f_pypi_daily.empty and "affinity" in f_pypi_daily.columns
+            not pypi_daily_df.empty and "affinity" in pypi_daily_df.columns
         )
 
         if _has_pypi_affinity:
-            _daily_aff = f_pypi_daily.copy()
+            _daily_aff = pypi_daily_df.copy()
             _daily_aff["date"] = pd.to_datetime(_daily_aff["date"], errors="coerce")
 
             # --- Local controls: time window + vendor filter ---
@@ -2316,16 +2297,16 @@ with st.expander("Stage 3 — Developer Intent", expanded=True):
 
         # --- GitHub repo affinity split (time-series) ---
         _repo_affinity_map = {}
-        if not f_gh_repo_stats_df.empty and "affinity" in f_gh_repo_stats_df.columns:
-            _latest_stats = f_gh_repo_stats_df.copy()
+        if not gh_repo_stats_df.empty and "affinity" in gh_repo_stats_df.columns:
+            _latest_stats = gh_repo_stats_df.copy()
             _latest_stats["fetched_at"] = pd.to_datetime(_latest_stats["fetched_at"], utc=True)
             _latest_stats = _latest_stats.sort_values("fetched_at").drop_duplicates(
                 subset=["repo"], keep="last"
             )
             _repo_affinity_map = dict(zip(_latest_stats["repo"], _latest_stats["affinity"]))
 
-        _can_show_sg = not f_gh_stargazers_df.empty and _repo_affinity_map
-        _can_show_fk = not f_gh_forks_df.empty and _repo_affinity_map
+        _can_show_sg = not gh_stargazers_df.empty and _repo_affinity_map
+        _can_show_fk = not gh_forks_df.empty and _repo_affinity_map
         # Re-use lock-in time window if available, else default 6 months
         _li_gh_cutoff = pd.Timestamp.now(tz="UTC") - pd.Timedelta(
             days=TIME_OPTIONS.get(_li_time, 90) if _has_pypi_affinity else 180
@@ -2334,7 +2315,7 @@ with st.expander("Stage 3 — Developer Intent", expanded=True):
 
         if _can_show_sg:
             st.markdown("##### New GitHub stars per week — native vs abstracted")
-            _sg_aff = f_gh_stargazers_df.copy()
+            _sg_aff = gh_stargazers_df.copy()
             if "affinity" not in _sg_aff.columns:
                 _sg_aff["affinity"] = _sg_aff["repo"].map(_repo_affinity_map).fillna("native")
             _sg_aff["starred_at"] = pd.to_datetime(_sg_aff["starred_at"], utc=True)
@@ -2362,7 +2343,7 @@ with st.expander("Stage 3 — Developer Intent", expanded=True):
 
         if _can_show_fk:
             st.markdown("##### New forks per week — native vs abstracted")
-            _fk_aff = f_gh_forks_df.copy()
+            _fk_aff = gh_forks_df.copy()
             if "affinity" not in _fk_aff.columns:
                 _fk_aff["affinity"] = _fk_aff["repo"].map(_repo_affinity_map).fillna("native")
             _fk_aff["forked_at"] = pd.to_datetime(_fk_aff["forked_at"], utc=True)
@@ -2398,11 +2379,11 @@ with st.expander("Stage 3 — Developer Intent", expanded=True):
 
         _bench_tabs = []
         _bench_labels = []
-        if not f_mlperf_df.empty and len(f_mlperf_df) > 0:
+        if not mlperf_df.empty and len(mlperf_df) > 0:
             _bench_labels.append("MLPerf Mobile")
-        if not f_ai_bench_df.empty and len(f_ai_bench_df) > 0:
+        if not ai_bench_df.empty and len(ai_bench_df) > 0:
             _bench_labels.append("AI Benchmark")
-        if not f_geekbench_df.empty and len(f_geekbench_df) > 0:
+        if not geekbench_df.empty and len(geekbench_df) > 0:
             _bench_labels.append("Geekbench ML")
 
         if not _bench_labels:
@@ -2417,7 +2398,7 @@ with st.expander("Stage 3 — Developer Intent", expanded=True):
             _tab_idx = 0
 
             # --- MLPerf Mobile ---
-            if not f_mlperf_df.empty and len(f_mlperf_df) > 0:
+            if not mlperf_df.empty and len(mlperf_df) > 0:
                 with _bench_tabs[_tab_idx]:
                     st.markdown("##### MLPerf Mobile — on-device inference throughput")
                     st.markdown(
@@ -2431,7 +2412,7 @@ with st.expander("Stage 3 — Developer Intent", expanded=True):
                         "**Coverage note:** Only vendors who voluntarily submit appear. "
                         "Apple, Google, and MediaTek do not currently submit mobile results."
                     )
-                    _mp = f_mlperf_df.copy()
+                    _mp = mlperf_df.copy()
 
                     if "result" in _mp.columns and _mp["result"].notna().any():
                         # Line chart: scores over versions
@@ -2482,7 +2463,7 @@ with st.expander("Stage 3 — Developer Intent", expanded=True):
                 _tab_idx += 1
 
             # --- AI Benchmark ---
-            if not f_ai_bench_df.empty and len(f_ai_bench_df) > 0:
+            if not ai_bench_df.empty and len(ai_bench_df) > 0:
                 with _bench_tabs[_tab_idx]:
                     st.markdown("##### AI Benchmark — mobile SoC AI performance")
                     st.markdown(
@@ -2497,7 +2478,7 @@ with st.expander("Stage 3 — Developer Intent", expanded=True):
                         "**Key signal:** The scatter plot shows whether the performance gap between "
                         "Qualcomm and MediaTek is growing (premium justified) or converging (premium at risk)."
                     )
-                    _ab = f_ai_bench_df.copy()
+                    _ab = ai_bench_df.copy()
 
                     if "ai_score" in _ab.columns and _ab["ai_score"].notna().any():
                         # --- Local vendor filter ---
@@ -2561,10 +2542,10 @@ with st.expander("Stage 3 — Developer Intent", expanded=True):
                 _tab_idx += 1
 
             # --- Geekbench ML ---
-            if not f_geekbench_df.empty and len(f_geekbench_df) > 0:
+            if not geekbench_df.empty and len(geekbench_df) > 0:
                 with _bench_tabs[_tab_idx]:
                     st.markdown("##### Geekbench ML — real-world device scores")
-                    _gb = f_geekbench_df.copy()
+                    _gb = geekbench_df.copy()
 
                     if "score" in _gb.columns and _gb["score"].notna().any():
                         _gb_valid = _gb[_gb["score"] > 0]
@@ -2668,10 +2649,10 @@ with st.expander("Stage 5 — End-User Runtime", expanded=False):
     # ── Play Store ───────────────────────────────────────────────────
     with st.expander("Play Store apps", expanded=True):
         st.markdown("### Android apps with on-device AI — Play Store scrape")
-        if f_playstore_df.empty:
+        if playstore_df.empty:
             st.info("No Play Store data for selected vendors.")
         else:
-            ps = f_playstore_df.copy()
+            ps = playstore_df.copy()
             ps["play_min_installs"] = pd.to_numeric(
                 ps["play_min_installs"], errors="coerce"
             ).fillna(0)
@@ -2737,10 +2718,10 @@ with st.expander("Stage 5 — End-User Runtime", expanded=False):
     # ── Design wins ──────────────────────────────────────────────────
     with st.expander("OEM design wins", expanded=True):
         st.markdown("### OEM flagship design wins by chipset")
-        if f_design_wins_df.empty:
+        if design_wins_df.empty:
             st.info("No design wins data for selected vendors.")
         else:
-            dw = f_design_wins_df.copy()
+            dw = design_wins_df.copy()
             dw["launch_date"] = pd.to_datetime(dw["launch_date"], errors="coerce")
             dw = dw.dropna(subset=["launch_date"]).sort_values("launch_date")
 

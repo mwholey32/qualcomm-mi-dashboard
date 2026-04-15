@@ -452,7 +452,7 @@ PACKAGE_COLOR: dict[str, str] = {
 
 STAGE_META: dict[str, dict] = {
     "stage2": {
-        "title": "Stage 2 · Supply / publishing",
+        "title": "1 · Supply / Publishing",
         "proxy": "strong",
         "cadence": "daily",
         "timing": "leading (3–12 mo)",
@@ -465,7 +465,7 @@ STAGE_META: dict[str, dict] = {
         ),
     },
     "stage3": {
-        "title": "Stage 3 · Developer intent",
+        "title": "2 · Developer Intent",
         "proxy": "strong",
         "cadence": "daily",
         "timing": "leading (1–6 mo)",
@@ -478,7 +478,7 @@ STAGE_META: dict[str, dict] = {
         ),
     },
     "stage4": {
-        "title": "Stage 4 · Productionization",
+        "title": "3 · Productionization",
         "proxy": "medium",
         "cadence": "daily",
         "timing": "concurrent",
@@ -491,7 +491,7 @@ STAGE_META: dict[str, dict] = {
         ),
     },
     "stage5": {
-        "title": "Stage 5 · End-user runtime",
+        "title": "4 · End-User Runtime",
         "proxy": "medium",
         "cadence": "on-demand",
         "timing": "lagging",
@@ -862,10 +862,10 @@ window_days = 90
 time_label = "3 months"
 
 # ===========================================================================
-# STAGE 2 · SUPPLY — publishing, runtimes, deployment tier, products
+# 1 · SUPPLY — publishing, runtimes, deployment tier, products
 # ===========================================================================
 
-with st.expander("Stage 2 — Supply / Publishing", expanded=True):
+with st.expander("1 — Supply / Publishing", expanded=True):
     stage_header("stage2")
 
     # ── Publishing Velocity ──────────────────────────────────────────
@@ -1405,10 +1405,10 @@ with st.expander("Stage 2 — Supply / Publishing", expanded=True):
 
 
 # ===========================================================================
-# STAGE 3 · DEVELOPER INTENT — PyPI, Reddit, GitHub issues, GitHub repos
+# 2 · DEVELOPER INTENT — PyPI, Reddit, GitHub issues, GitHub repos
 # ===========================================================================
 
-with st.expander("Stage 3 — Developer Intent", expanded=True):
+with st.expander("2 — Developer Intent", expanded=True):
     stage_header("stage3")
 
     # ── PyPI downloads ───────────────────────────────────────────────
@@ -2604,10 +2604,10 @@ with st.expander("Stage 3 — Developer Intent", expanded=True):
 
 
 # ===========================================================================
-# STAGE 4 · PRODUCTIONIZATION — HF Spaces
+# 3 · PRODUCTIONIZATION — HF Spaces
 # ===========================================================================
 
-with st.expander("Stage 4 — Productionization", expanded=False):
+with st.expander("3 — Productionization", expanded=False):
     stage_header("stage4")
 
     sp = analyze.spaces_summary(spaces_df)
@@ -2640,10 +2640,10 @@ with st.expander("Stage 4 — Productionization", expanded=False):
 
 
 # ===========================================================================
-# STAGE 5 · END-USER RUNTIME — Play Store + OEM design wins
+# 4 · END-USER RUNTIME — Play Store + OEM design wins
 # ===========================================================================
 
-with st.expander("Stage 5 — End-User Runtime", expanded=False):
+with st.expander("4 — End-User Runtime", expanded=False):
     stage_header("stage5")
 
     # ── Play Store ───────────────────────────────────────────────────

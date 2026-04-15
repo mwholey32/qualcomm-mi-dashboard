@@ -1603,8 +1603,11 @@ with st.expander("2 — Developer Intent", expanded=True):
     with st.expander("Developer profile (OS breakdown)", expanded=False):
         st.markdown("#### Who's installing? — Linux vs Windows vs macOS")
         st.caption(
-            "Linux-dominant installs suggest CI/CD pipelines and server-side enterprise use. "
-            "macOS/Windows-dominant installs suggest individual developers on local machines. "
+            "These are **developer workstation / CI installs** — where models get *built*, "
+            "not where they *run*. Linux-heavy = CI/CD pipelines and enterprise build servers. "
+            "macOS/Windows-heavy = individual developers on local machines. "
+            "All packages tracked are AI/ML toolchain SDKs. Use the affinity filter below to "
+            "isolate on-device-specific tools (native) vs cross-platform SDKs (abstracted). "
             "Source: pypistats.org /system endpoint."
         )
         if pypi_system_df.empty:
@@ -1612,6 +1615,19 @@ with st.expander("2 — Developer Intent", expanded=True):
         else:
             _sys = pypi_system_df.copy()
             _sys["date"] = pd.to_datetime(_sys["date"], errors="coerce")
+
+            # Affinity filter
+            _sys_affinities = sorted(_sys["affinity"].dropna().unique()) if "affinity" in _sys.columns else []
+            if _sys_affinities:
+                _sys_aff = st.multiselect(
+                    "Hardware affinity",
+                    options=_sys_affinities,
+                    default=_sys_affinities,
+                    key="sys_affinity",
+                    help="native = on-device-specific SDKs, abstracted = cross-platform, mixed = both",
+                )
+                _sys = _sys[_sys["affinity"].isin(_sys_aff)]
+
             # Normalize OS names
             _sys["os"] = _sys["category"].fillna("unknown").replace({
                 "Darwin": "macOS", "null": "unknown",

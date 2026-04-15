@@ -68,11 +68,19 @@ REPOS: list[dict[str, str]] = [
     # Intel — edge / hybrid
     {"repo": "openvinotoolkit/openvino",      "vendor": "Intel",    "role": "inference engine (CPU/GPU/NPU)", "affinity": "native"},
     {"repo": "intel/neural-compressor",       "vendor": "Intel",    "role": "quantization toolkit",      "affinity": "native"},
+    {"repo": "huggingface/optimum-intel",     "vendor": "Intel",    "role": "HF Optimum OpenVINO/IPEX",  "affinity": "native"},
+    {"repo": "intel/intel-extension-for-pytorch", "vendor": "Intel", "role": "IPEX CPU/GPU extension",   "affinity": "native"},
     # Meta — cross-platform on-device
     {"repo": "pytorch/executorch",            "vendor": "Meta",     "role": "on-device PyTorch runtime", "affinity": "abstracted"},
+    # Microsoft — ONNX / DirectML ecosystem
+    {"repo": "microsoft/onnxruntime",         "vendor": "Microsoft", "role": "cross-platform inference runtime", "affinity": "abstracted"},
+    {"repo": "microsoft/olive",               "vendor": "Microsoft", "role": "model optimization pipeline",     "affinity": "abstracted"},
+    {"repo": "microsoft/DirectML",            "vendor": "Microsoft", "role": "DirectML hardware abstraction",   "affinity": "abstracted"},
     # NVIDIA — datacenter (reference point)
     {"repo": "NVIDIA/TensorRT",              "vendor": "NVIDIA",   "role": "inference optimizer",        "affinity": "native"},
     {"repo": "NVIDIA/TensorRT-LLM",          "vendor": "NVIDIA",   "role": "LLM inference engine",      "affinity": "native"},
+    {"repo": "triton-inference-server/server", "vendor": "NVIDIA",  "role": "inference serving platform", "affinity": "native"},
+    {"repo": "NVIDIA/cuda-python",            "vendor": "NVIDIA",   "role": "CUDA Python bindings",      "affinity": "native"},
     # Qualcomm (Edge Impulse acquisition) — edge ML tooling
     {"repo": "edgeimpulse/inferencing-sdk-cpp",              "vendor": "Qualcomm", "role": "edge inference SDK",        "affinity": "mixed"},
     {"repo": "edgeimpulse/linux-sdk-python",                 "vendor": "Qualcomm", "role": "Linux ML runner",           "affinity": "mixed"},

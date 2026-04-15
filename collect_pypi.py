@@ -172,9 +172,6 @@ PACKAGES: list[PyPIPackage] = [
     PyPIPackage("executorch",     "Meta / cross", "ExecuTorch",
                 "PyTorch runtime for mobile + embedded",
                 affinity="abstracted"),
-    PyPIPackage("optimum",        "HuggingFace",  "Optimum",
-                "HF's unified hardware-backend router",
-                affinity="abstracted"),
 ]
 
 

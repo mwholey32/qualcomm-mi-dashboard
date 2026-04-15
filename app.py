@@ -306,21 +306,17 @@ st.markdown("""
     font-size: 0.7rem !important;
   }
 
-  /* Fix: ensure main content area scrolls to full height when expanders toggle */
+  /* Fix: ensure content area scrolls to full height when expanders toggle */
   [data-testid="stAppViewContainer"],
-  [data-testid="stMain"],
-  [data-testid="stVerticalBlock"],
-  [data-testid="stExpander"] {
-    overflow: visible !important;
+  [data-testid="stMain"] {
+    overflow: auto !important;
   }
   .main .block-container {
     overflow: visible !important;
     max-height: none !important;
-    min-height: auto !important;
   }
   [data-testid="stExpander"] details[open] {
     overflow: visible !important;
-    min-height: fit-content !important;
   }
 </style>
 """, unsafe_allow_html=True)

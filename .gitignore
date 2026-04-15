@@ -1,0 +1,6 @@
+data/run_metadata.json
+data/history/
+__pycache__/
+*.pyc
+.venv/
+.env

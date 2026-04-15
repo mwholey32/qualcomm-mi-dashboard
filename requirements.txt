@@ -1,0 +1,8 @@
+streamlit>=1.32
+huggingface_hub>=0.23
+pandas>=2.1
+plotly>=5.18
+pyarrow>=15.0
+requests>=2.31
+python-dateutil>=2.8
+google-play-scraper>=1.2

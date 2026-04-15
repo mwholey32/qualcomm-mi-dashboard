@@ -1,0 +1,26 @@
+device,oem,chipset,chipset_vendor,launch_date,category,ai_features,source,verified
+Samsung Galaxy S25 Ultra,Samsung,Snapdragon 8 Elite for Galaxy,Qualcomm,2025-01-22,flagship_android,"Galaxy AI, Circle to Search, Generative Edit, Live Translate, Note Assist, Sketch to Image",https://news.samsung.com/global/galaxy-s25-series,false
+Samsung Galaxy S25+,Samsung,Snapdragon 8 Elite for Galaxy,Qualcomm,2025-01-22,flagship_android,"Galaxy AI, Circle to Search, Generative Edit, Live Translate",https://news.samsung.com/global/galaxy-s25-series,false
+Samsung Galaxy S25,Samsung,Snapdragon 8 Elite for Galaxy,Qualcomm,2025-01-22,flagship_android,"Galaxy AI, Circle to Search, Generative Edit, Live Translate",https://news.samsung.com/global/galaxy-s25-series,false
+Samsung Galaxy S24 Ultra,Samsung,Snapdragon 8 Gen 3 for Galaxy,Qualcomm,2024-01-17,flagship_android,"Live Translate, Note Assist, Chat Assist, Generative Edit, Circle to Search",https://news.samsung.com/global/galaxy-unpacked-2024,false
+OnePlus 13,OnePlus,Snapdragon 8 Elite,Qualcomm,2025-01-07,flagship_android,"AI Notes, AI Unblur, AI Eraser, AI Translator, AI Reframe, Intelligent Search",https://www.oneplus.com/us/13,false
+Xiaomi 15 Pro,Xiaomi,Snapdragon 8 Elite,Qualcomm,2024-10-29,flagship_android,"HyperAI: AI Writing, AI Image, AI Interpreter, AI Subtitle, AI Search",https://www.mi.com/global/product/xiaomi-15/,false
+Xiaomi 15,Xiaomi,Snapdragon 8 Elite,Qualcomm,2024-10-29,flagship_android,"HyperAI suite",https://www.mi.com/global/product/xiaomi-15/,false
+Honor Magic7 Pro,Honor,Snapdragon 8 Elite,Qualcomm,2024-10-30,flagship_android,"MagicLM 7B on-device LLM, AI Eraser, AI Film Generator, Yoyo Assistant",https://www.honor.com/global/phones/honor-magic7-pro/,false
+Asus ROG Phone 9 Pro,Asus,Snapdragon 8 Elite,Qualcomm,2024-11-19,gaming_android,"AI Grabber, AI Noise Cancellation, AI Magic Portrait",https://rog.asus.com/phones/rog-phone-9-pro/,false
+Vivo X200 Pro,Vivo,MediaTek Dimensity 9400,MediaTek,2024-10-14,flagship_android,"BlueLM on-device LLM, AI Erase, AI Cutout, AI Photo Enhance",https://www.vivo.com/en/products/x200pro,false
+Oppo Find X8 Pro,Oppo,MediaTek Dimensity 9400,MediaTek,2024-11-21,flagship_android,"AI Eraser, AI Notes, AI Summary, AndesGPT local",https://www.oppo.com/en/smartphones/series-find-x/find-x8-pro/,false
+Google Pixel 9 Pro,Google,Tensor G4,Google,2024-08-13,flagship_android,"Gemini Nano on-device LLM, Magic Editor, Add Me, Call Screen, Pixel Screenshots",https://store.google.com/product/pixel_9_pro,false
+Google Pixel 9 Pro XL,Google,Tensor G4,Google,2024-08-13,flagship_android,"Gemini Nano, Magic Editor, Pixel Screenshots, Live Translate",https://store.google.com/product/pixel_9_pro_xl,false
+Google Pixel 9,Google,Tensor G4,Google,2024-08-13,flagship_android,"Gemini Nano (where supported), Magic Editor, Add Me, Call Screen",https://store.google.com/product/pixel_9,false
+Apple iPhone 16 Pro,Apple,A18 Pro,Apple,2024-09-20,flagship_ios,"Apple Intelligence: Writing Tools, Image Playground, Genmoji, Visual Intelligence, Siri + ChatGPT",https://www.apple.com/iphone-16-pro/,false
+Apple iPhone 16 Pro Max,Apple,A18 Pro,Apple,2024-09-20,flagship_ios,"Apple Intelligence: Writing Tools, Image Playground, Genmoji, Visual Intelligence, Siri + ChatGPT",https://www.apple.com/iphone-16-pro/,false
+Apple iPhone 16,Apple,A18,Apple,2024-09-20,flagship_ios,"Apple Intelligence: Writing Tools, Image Playground, Genmoji, Visual Intelligence",https://www.apple.com/iphone-16/,false
+Apple iPhone 16 Plus,Apple,A18,Apple,2024-09-20,flagship_ios,"Apple Intelligence: Writing Tools, Image Playground, Genmoji, Visual Intelligence",https://www.apple.com/iphone-16/,false
+Microsoft Surface Laptop 7 (Copilot+ PC),Microsoft,Snapdragon X Elite,Qualcomm,2024-06-18,copilot_plus_pc,"Recall, Cocreator, Live Captions, Studio Effects — 40+ TOPS NPU",https://www.microsoft.com/surface/devices/surface-laptop-copilot-pc,false
+Microsoft Surface Pro 11 (Copilot+ PC),Microsoft,Snapdragon X Elite,Qualcomm,2024-06-18,copilot_plus_pc,"Recall, Cocreator, Live Captions, Studio Effects",https://www.microsoft.com/surface/devices/surface-pro-copilot-pc,false
+Samsung Galaxy Book4 Edge,Samsung,Snapdragon X Elite,Qualcomm,2024-06-18,copilot_plus_pc,"Copilot+ PC features, Windows Studio Effects",https://www.samsung.com/us/computing/galaxy-books/galaxy-book4-edge/,false
+Dell XPS 13 Copilot+ PC,Dell,Snapdragon X Elite,Qualcomm,2024-06-18,copilot_plus_pc,"Copilot+ PC features, Windows Studio Effects",https://www.dell.com/en-us/shop/dell-laptops/xps-13-copilot-pc/,false
+Lenovo Yoga Slim 7x,Lenovo,Snapdragon X Elite,Qualcomm,2024-06-18,copilot_plus_pc,"Copilot+ PC features, Recall (when available)",https://www.lenovo.com/us/en/p/laptops/yoga/yoga-slim-series/,false
+HP OmniBook X,HP,Snapdragon X Elite,Qualcomm,2024-06-18,copilot_plus_pc,"Copilot+ PC features, poly cam studio effects",https://www.hp.com/us-en/shop/pdp/hp-omnibook-x-laptop,false
+Asus Vivobook S 15,Asus,Snapdragon X Elite,Qualcomm,2024-06-18,copilot_plus_pc,"Copilot+ PC features",https://www.asus.com/laptops/for-home/vivobook/,false

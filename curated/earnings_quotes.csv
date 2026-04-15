@@ -1,0 +1,6 @@
+date,company,ticker,source,topic,quote,url
+2024-02-08,Qualcomm,QCOM,press_release,ai_hub_launch,"Qualcomm AI Hub launches with 75+ optimized AI models for Snapdragon devices — REPLACE WITH VERIFIED QUOTE",https://www.qualcomm.com/news/releases/2024/02/qualcomm-ai-hub-makes-it-easy-for-developers-to-leverage-the-latest
+2024-10-21,Qualcomm,QCOM,product_launch,snapdragon_8_elite,"PLACEHOLDER — verify before presenting",https://www.qualcomm.com/snapdragon/overview
+,Qualcomm,QCOM,earnings_call,on_device_ai,"PLACEHOLDER — copy verbatim from transcript + add URL",
+,NVIDIA,NVDA,earnings_call,data_center_ai,"PLACEHOLDER — copy verbatim from transcript + add URL",
+,Apple,AAPL,keynote,apple_intelligence,"PLACEHOLDER — copy verbatim from transcript + add URL",

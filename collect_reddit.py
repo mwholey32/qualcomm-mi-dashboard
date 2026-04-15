@@ -64,6 +64,8 @@ SUBREDDITS = [
     "MachineLearning",
     "comfyui",
     "arduino",
+    "embedded",
+    "androiddev",
 ]
 
 VENDOR_KEYWORDS: dict[str, list[str]] = {
@@ -72,7 +74,7 @@ VENDOR_KEYWORDS: dict[str, list[str]] = {
     "Apple":     ["apple silicon", "mlx"],
     "Intel":     ["intel", "openvino"],
     "AMD":       ["amd", "rocm"],
-    "Google":    ["mediatek", "tflite"],
+    "Google":    ["google ai", "litert", "tflite", "mediapipe"],
     "Arduino":   ["arduino", "uno q", "ventuno"],
     "Generic":   ["npu", "on-device"],
 }

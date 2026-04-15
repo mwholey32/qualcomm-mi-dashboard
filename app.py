@@ -1242,10 +1242,10 @@ with st.expander("1 — Supply / Publishing", expanded=True):
                     "an addressable opportunity."
                 )
 
-                if "qualcomm" in ct_top.index:
-                    qc_counts = ct_top.loc["qualcomm"]
-                    peer_counts = ct_top.drop("qualcomm", errors="ignore").sum()
-                    n_peers = max(len(ct_top) - 1, 1)
+                if "qualcomm" in ct.index:
+                    qc_counts = ct.loc["qualcomm"]
+                    peer_counts = ct.drop("qualcomm", errors="ignore").sum()
+                    n_peers = max(len(ct) - 1, 1)
 
                     qc_dl = _mt[_mt["vendor"] == "qualcomm"].groupby("pipeline_tag")["downloads"].sum()
                     peer_dl = _mt[_mt["vendor"] != "qualcomm"].groupby("pipeline_tag")["downloads"].sum()

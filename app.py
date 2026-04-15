@@ -1250,8 +1250,12 @@ with st.expander("1 — Supply / Publishing", expanded=True):
                     qc_dl = _mt[_mt["vendor"] == "qualcomm"].groupby("pipeline_tag")["downloads"].sum()
                     peer_dl = _mt[_mt["vendor"] != "qualcomm"].groupby("pipeline_tag")["downloads"].sum()
 
+                    # Use all types that have either supply or demand, not just top 15
+                    all_types = sorted(
+                        set(ct.columns.tolist()) | set(qc_dl.index.tolist()) | set(peer_dl.index.tolist())
+                    )
                     gap_rows = []
-                    for mtype in top_types:
+                    for mtype in all_types:
                         qc_n = int(qc_counts.get(mtype, 0))
                         peer_n = int(peer_counts.get(mtype, 0))
                         qc_d = int(qc_dl.get(mtype, 0))

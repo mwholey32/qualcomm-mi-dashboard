@@ -2148,7 +2148,7 @@ with st.expander("2 — Developer Intent", expanded=True):
                 _gh_time = st.select_slider(
                     "Time window",
                     options=list(TIME_OPTIONS.keys()),
-                    value="6 months",
+                    value="1 year",
                     key="gh_repo_time",
                 )
                 _gh_window = TIME_OPTIONS[_gh_time]
@@ -2401,7 +2401,7 @@ with st.expander("2 — Developer Intent", expanded=True):
 
             if not _er.empty:
                 _er["engagement"] = _er["forks"] + _er["prod_issues"]
-                _er["ratio"] = (_er["engagement"] / _er["downloads"] * 10_000).round(1)
+                _er["ratio"] = (_er["engagement"] / _er["downloads"] * 10_000).round(2)
                 _er = _er.sort_values("ratio", ascending=False)
 
                 fig_er = px.bar(
@@ -2411,12 +2411,13 @@ with st.expander("2 — Developer Intent", expanded=True):
                     color="vendor",
                     text="ratio",
                     color_discrete_map=VENDOR_COLOR,
+                    log_y=True,
                 )
-                fig_er.update_traces(texttemplate="%{text:.1f}", textposition="outside")
+                fig_er.update_traces(texttemplate="%{text:.2f}", textposition="outside")
                 fig_er.update_layout(
                     showlegend=False,
                     xaxis_title="",
-                    yaxis_title=f"Engagement per 10K downloads (last {_gh_time})",
+                    yaxis_title=f"Engagement per 10K downloads (log, last {_gh_time})",
                     height=400,
                 )
                 st.plotly_chart(fig_er, use_container_width=True)

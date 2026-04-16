@@ -2302,22 +2302,30 @@ with st.expander("2 — Developer Intent", expanded=True):
 
             # -- Developer Engagement Ratio ----------------------------------
             # Compares time-aligned GitHub engagement (forks + production issues)
-            # against downloads across all tracked channels to measure actual
-            # usage per download.
+            # against time-aligned downloads (PyPI + npm, same window) to measure
+            # actual usage per download. Lifetime cumulative sources (Docker, NuGet,
+            # GH Releases) are intentionally excluded — mixing lifetime totals with
+            # windowed engagement produces a misleading ratio for vendors with long-
+            # established registry footprints.
             st.markdown("##### Developer Engagement Ratio")
             st.caption(
                 "Measures **actual hands-on usage per download**. "
                 "Forks (experimentation) and production-keyword issues (deployment) "
-                "from the selected time window are divided by downloads across all "
-                "tracked channels (**PyPI + npm** windowed; **Docker + NuGet + GitHub Releases** "
-                "lifetime cumulative). A higher ratio means a larger share of downloaders "
-                "are actively building — not just installing."
+                "from the selected time window are divided by downloads over the "
+                "**same window** (PyPI + npm only — both support daily time-series). "
+                "Cumulative-only channels (Docker, NuGet, GH Releases) are excluded "
+                "here because their lifetime totals would distort the ratio against "
+                "any windowed engagement numerator. A higher ratio means a larger "
+                "share of downloaders are actively building — not just installing. "
+                "Caveat: vendors whose primary distribution is a private portal "
+                "(e.g. Qualcomm AI Hub) have artificially small denominators because "
+                "those channels are invisible to public registries."
             )
 
             # Normalize vendor names between PyPI ("Meta / cross") and GitHub ("Meta")
             _vendor_norm = {"Meta / cross": "Meta"}
 
-            # Combined downloads: PyPI + npm (windowed) + Docker + NuGet + GH Releases (cumulative)
+            # Combined windowed downloads: PyPI + npm only
             _dl_parts: list[pd.DataFrame] = []
 
             # PyPI downloads in the time window
@@ -2335,30 +2343,6 @@ with st.expander("2 — Developer Intent", expanded=True):
                 _er_npm = _er_npm[_er_npm["date"] >= _gh_cutoff]
                 _er_npm["vendor"] = _er_npm["vendor"].replace(_vendor_norm)
                 _dl_parts.append(_er_npm.groupby("vendor", as_index=False)["downloads"].sum())
-
-            # Docker pulls — cumulative lifetime (no time series available)
-            if not docker_df.empty and "pull_count" in docker_df.columns:
-                _er_dk = docker_df.copy()
-                _er_dk["vendor"] = _er_dk["vendor"].replace(_vendor_norm)
-                _dl_parts.append(
-                    _er_dk.groupby("vendor", as_index=False)["pull_count"]
-                          .sum().rename(columns={"pull_count": "downloads"})
-                )
-
-            # NuGet downloads — cumulative lifetime
-            if not nuget_df.empty and "total_downloads" in nuget_df.columns:
-                _er_nu = nuget_df.copy()
-                _er_nu["vendor"] = _er_nu["vendor"].replace(_vendor_norm)
-                _dl_parts.append(
-                    _er_nu.groupby("vendor", as_index=False)["total_downloads"]
-                          .sum().rename(columns={"total_downloads": "downloads"})
-                )
-
-            # GitHub Releases — cumulative lifetime asset downloads
-            if not gh_releases_df.empty and "downloads" in gh_releases_df.columns:
-                _er_gr = gh_releases_df.copy()
-                _er_gr["vendor"] = _er_gr["vendor"].replace(_vendor_norm)
-                _dl_parts.append(_er_gr.groupby("vendor", as_index=False)["downloads"].sum())
 
             if _dl_parts:
                 _er_dl = (
@@ -2425,7 +2409,7 @@ with st.expander("2 — Developer Intent", expanded=True):
                 st.dataframe(
                     _er[["vendor", "downloads", "forks", "prod_issues", "engagement", "ratio"]].rename(
                         columns={
-                            "downloads": "Combined downloads (PyPI+npm windowed, Docker/NuGet/GH cumul.)",
+                            "downloads": f"PyPI + npm downloads ({_gh_time})",
                             "forks": f"Forks ({_gh_time})",
                             "prod_issues": f"Prod issues ({_gh_time})",
                             "engagement": "Engagement (forks + issues)",
@@ -2435,7 +2419,7 @@ with st.expander("2 — Developer Intent", expanded=True):
                     use_container_width=True,
                     hide_index=True,
                     column_config={
-                        "Combined downloads (PyPI+npm windowed, Docker/NuGet/GH cumul.)":
+                        f"PyPI + npm downloads ({_gh_time})":
                             st.column_config.NumberColumn(format="%,d"),
                         f"Forks ({_gh_time})": st.column_config.NumberColumn(format="%,d"),
                         f"Prod issues ({_gh_time})": st.column_config.NumberColumn(format="%,d"),

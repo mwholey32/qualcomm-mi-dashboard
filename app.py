@@ -722,6 +722,10 @@ cards_df = load_parquet("model_cards.parquet", file_mtime=_parquet_mtime("model_
 pypi_recent_df = load_parquet("pypi_recent.parquet", file_mtime=_parquet_mtime("pypi_recent.parquet"))
 pypi_daily_df = load_parquet("pypi_downloads.parquet", file_mtime=_parquet_mtime("pypi_downloads.parquet"))
 pypi_system_df = load_parquet("pypi_system.parquet", file_mtime=_parquet_mtime("pypi_system.parquet"))
+npm_df = load_parquet("npm_downloads.parquet", file_mtime=_parquet_mtime("npm_downloads.parquet"))
+docker_df = load_parquet("docker_pulls.parquet", file_mtime=_parquet_mtime("docker_pulls.parquet"))
+nuget_df = load_parquet("nuget_downloads.parquet", file_mtime=_parquet_mtime("nuget_downloads.parquet"))
+gh_releases_df = load_parquet("github_releases.parquet", file_mtime=_parquet_mtime("github_releases.parquet"))
 fw_counts_df = load_parquet("framework_counts.parquet", file_mtime=_parquet_mtime("framework_counts.parquet"))
 reddit_df = load_parquet("reddit_mentions.parquet", file_mtime=_parquet_mtime("reddit_mentions.parquet"))
 gh_counts_df = load_parquet("github_mention_counts.parquet", file_mtime=_parquet_mtime("github_mention_counts.parquet"))
@@ -1419,8 +1423,134 @@ with st.expander("1 — Supply / Publishing", expanded=True):
 with st.expander("2 — Developer Intent", expanded=True):
     stage_header("stage3")
 
-    # ── PyPI downloads ───────────────────────────────────────────────
-    with st.expander("PyPI downloads", expanded=True):
+    # ── Downloads across channels ────────────────────────────────────
+    with st.expander("Downloads — PyPI + npm + Docker + NuGet + GitHub Releases", expanded=True):
+        # -- Unified view: all channels combined, by vendor ---------------
+        st.markdown("#### Total downloads by vendor — all tracked channels")
+        st.caption(
+            "Combines **PyPI** (Python SDKs), **npm** (JS / React Native / web), "
+            "**Docker Hub** (dev containers), **NuGet** (.NET packages), and "
+            "**GitHub Releases** (native installers / prebuilt binaries). "
+            "PyPI & npm are windowed to the selected time range; Docker, NuGet, "
+            "and GitHub Releases are **lifetime cumulative** (no time series available). "
+            "This closes the ~60% gap that PyPI alone misses — particularly for "
+            "Microsoft (.NET), Google (MediaPipe web + TF containers), and NVIDIA (CUDA containers)."
+        )
+
+        _ac_all_vendors = sorted(
+            set(pypi_daily_df["vendor"].unique() if not pypi_daily_df.empty else [])
+            | set(npm_df["vendor"].unique() if not npm_df.empty else [])
+            | set(docker_df["vendor"].unique() if not docker_df.empty else [])
+            | set(nuget_df["vendor"].unique() if not nuget_df.empty else [])
+            | set(gh_releases_df["vendor"].unique() if not gh_releases_df.empty else [])
+        )
+        _ac_c1, _ac_c2 = st.columns([1, 3])
+        with _ac_c1:
+            _ac_time = st.select_slider(
+                "Time window (PyPI + npm)",
+                options=list(TIME_OPTIONS.keys()),
+                value="3 months",
+                key="allchan_time",
+            )
+            _ac_window = TIME_OPTIONS[_ac_time]
+        with _ac_c2:
+            _ac_vendors = st.multiselect(
+                "Vendors",
+                options=_ac_all_vendors,
+                default=_ac_all_vendors,
+                key="allchan_vendors",
+            )
+
+        _ac_cutoff = pd.Timestamp.now() - pd.Timedelta(days=_ac_window)
+        _ac_rows: list[dict] = []
+
+        # PyPI (windowed time series)
+        if not pypi_daily_df.empty:
+            _pp = pypi_daily_df.copy()
+            _pp["date"] = pd.to_datetime(_pp["date"], errors="coerce")
+            _pp = _pp[_pp["date"] >= _ac_cutoff]
+            for v, g in _pp.groupby("vendor"):
+                _ac_rows.append({"vendor": v, "channel": "PyPI (windowed)", "downloads": int(g["downloads"].sum())})
+
+        # npm (windowed time series)
+        if not npm_df.empty:
+            _np = npm_df.copy()
+            _np["date"] = pd.to_datetime(_np["date"], errors="coerce")
+            _np = _np[_np["date"] >= _ac_cutoff]
+            for v, g in _np.groupby("vendor"):
+                _ac_rows.append({"vendor": v, "channel": "npm (windowed)", "downloads": int(g["downloads"].sum())})
+
+        # Docker (cumulative snapshot)
+        if not docker_df.empty:
+            for v, g in docker_df.groupby("vendor"):
+                _ac_rows.append({"vendor": v, "channel": "Docker (cumulative)", "downloads": int(g["pull_count"].sum())})
+
+        # NuGet (cumulative snapshot)
+        if not nuget_df.empty:
+            for v, g in nuget_df.groupby("vendor"):
+                _ac_rows.append({"vendor": v, "channel": "NuGet (cumulative)", "downloads": int(g["total_downloads"].sum())})
+
+        # GitHub Releases (cumulative snapshot)
+        if not gh_releases_df.empty:
+            for v, g in gh_releases_df.groupby("vendor"):
+                _ac_rows.append({"vendor": v, "channel": "GH Releases (cumulative)", "downloads": int(g["downloads"].sum())})
+
+        _ac_df = pd.DataFrame(_ac_rows)
+        _ac_df = _ac_df[_ac_df["vendor"].isin(_ac_vendors)]
+
+        if not _ac_df.empty:
+            _ac_order = (
+                _ac_df.groupby("vendor")["downloads"].sum()
+                .sort_values(ascending=False).index.tolist()
+            )
+            _CHANNEL_COLOR = {
+                "PyPI (windowed)":           "#4C78A8",
+                "npm (windowed)":            "#F58518",
+                "Docker (cumulative)":       "#54A24B",
+                "NuGet (cumulative)":        "#B279A2",
+                "GH Releases (cumulative)":  "#E45756",
+            }
+            fig_ac = px.bar(
+                _ac_df,
+                x="vendor",
+                y="downloads",
+                color="channel",
+                category_orders={"vendor": _ac_order,
+                                 "channel": list(_CHANNEL_COLOR.keys())},
+                color_discrete_map=_CHANNEL_COLOR,
+                log_y=True,
+            )
+            fig_ac.update_layout(
+                xaxis_title="",
+                yaxis_title="Downloads (log scale)",
+                legend_title_text="Channel",
+                barmode="stack",
+                height=450,
+            )
+            st.plotly_chart(fig_ac, use_container_width=True)
+
+            # Pivot table: vendor × channel
+            _ac_pivot = (
+                _ac_df.pivot_table(index="vendor", columns="channel",
+                                   values="downloads", aggfunc="sum", fill_value=0)
+                      .reindex(_ac_order)
+            )
+            _ac_pivot["Total"] = _ac_pivot.sum(axis=1)
+            _ac_pivot = _ac_pivot.sort_values("Total", ascending=False)
+            _col_cfg = {c: st.column_config.NumberColumn(format="%,d") for c in _ac_pivot.columns}
+            st.dataframe(
+                _ac_pivot.reset_index(),
+                use_container_width=True,
+                hide_index=True,
+                column_config=_col_cfg,
+            )
+        else:
+            st.info("No download data across channels for selected vendors.")
+
+        st.divider()
+
+        # -- PyPI-specific drill-down ------------------------------------
+        st.markdown("#### PyPI drill-down")
         if pypi_daily_df.empty:
             st.info("No PyPI data for selected vendors.")
         else:
@@ -2172,28 +2302,69 @@ with st.expander("2 — Developer Intent", expanded=True):
 
             # -- Developer Engagement Ratio ----------------------------------
             # Compares time-aligned GitHub engagement (forks + production issues)
-            # against PyPI downloads to measure actual usage per download.
+            # against downloads across all tracked channels to measure actual
+            # usage per download.
             st.markdown("##### Developer Engagement Ratio")
             st.caption(
                 "Measures **actual hands-on usage per download**. "
                 "Forks (experimentation) and production-keyword issues (deployment) "
-                "from the selected time window are divided by PyPI downloads over "
-                "the same period. A higher ratio means a larger share of downloaders "
+                "from the selected time window are divided by downloads across all "
+                "tracked channels (**PyPI + npm** windowed; **Docker + NuGet + GitHub Releases** "
+                "lifetime cumulative). A higher ratio means a larger share of downloaders "
                 "are actively building — not just installing."
             )
 
             # Normalize vendor names between PyPI ("Meta / cross") and GitHub ("Meta")
             _vendor_norm = {"Meta / cross": "Meta"}
 
-            # PyPI downloads in the time window, by vendor
-            _er_has_pypi = not pypi_daily_df.empty and "date" in pypi_daily_df.columns
-            if _er_has_pypi:
+            # Combined downloads: PyPI + npm (windowed) + Docker + NuGet + GH Releases (cumulative)
+            _dl_parts: list[pd.DataFrame] = []
+
+            # PyPI downloads in the time window
+            if not pypi_daily_df.empty and "date" in pypi_daily_df.columns:
                 _er_pypi = pypi_daily_df.copy()
                 _er_pypi["date"] = pd.to_datetime(_er_pypi["date"], utc=True, errors="coerce")
                 _er_pypi = _er_pypi[_er_pypi["date"] >= _gh_cutoff]
                 _er_pypi["vendor"] = _er_pypi["vendor"].replace(_vendor_norm)
-                _er_dl = _er_pypi.groupby("vendor", as_index=False)["downloads"].sum()
-                _er_dl = _er_dl.rename(columns={"downloads": "downloads"})
+                _dl_parts.append(_er_pypi.groupby("vendor", as_index=False)["downloads"].sum())
+
+            # npm downloads in the time window
+            if not npm_df.empty and "date" in npm_df.columns:
+                _er_npm = npm_df.copy()
+                _er_npm["date"] = pd.to_datetime(_er_npm["date"], utc=True, errors="coerce")
+                _er_npm = _er_npm[_er_npm["date"] >= _gh_cutoff]
+                _er_npm["vendor"] = _er_npm["vendor"].replace(_vendor_norm)
+                _dl_parts.append(_er_npm.groupby("vendor", as_index=False)["downloads"].sum())
+
+            # Docker pulls — cumulative lifetime (no time series available)
+            if not docker_df.empty and "pull_count" in docker_df.columns:
+                _er_dk = docker_df.copy()
+                _er_dk["vendor"] = _er_dk["vendor"].replace(_vendor_norm)
+                _dl_parts.append(
+                    _er_dk.groupby("vendor", as_index=False)["pull_count"]
+                          .sum().rename(columns={"pull_count": "downloads"})
+                )
+
+            # NuGet downloads — cumulative lifetime
+            if not nuget_df.empty and "total_downloads" in nuget_df.columns:
+                _er_nu = nuget_df.copy()
+                _er_nu["vendor"] = _er_nu["vendor"].replace(_vendor_norm)
+                _dl_parts.append(
+                    _er_nu.groupby("vendor", as_index=False)["total_downloads"]
+                          .sum().rename(columns={"total_downloads": "downloads"})
+                )
+
+            # GitHub Releases — cumulative lifetime asset downloads
+            if not gh_releases_df.empty and "downloads" in gh_releases_df.columns:
+                _er_gr = gh_releases_df.copy()
+                _er_gr["vendor"] = _er_gr["vendor"].replace(_vendor_norm)
+                _dl_parts.append(_er_gr.groupby("vendor", as_index=False)["downloads"].sum())
+
+            if _dl_parts:
+                _er_dl = (
+                    pd.concat(_dl_parts, ignore_index=True)
+                      .groupby("vendor", as_index=False)["downloads"].sum()
+                )
             else:
                 _er_dl = pd.DataFrame(columns=["vendor", "downloads"])
 
@@ -2253,7 +2424,7 @@ with st.expander("2 — Developer Intent", expanded=True):
                 st.dataframe(
                     _er[["vendor", "downloads", "forks", "prod_issues", "engagement", "ratio"]].rename(
                         columns={
-                            "downloads": f"PyPI downloads ({_gh_time})",
+                            "downloads": "Combined downloads (PyPI+npm windowed, Docker/NuGet/GH cumul.)",
                             "forks": f"Forks ({_gh_time})",
                             "prod_issues": f"Prod issues ({_gh_time})",
                             "engagement": "Engagement (forks + issues)",
@@ -2263,14 +2434,15 @@ with st.expander("2 — Developer Intent", expanded=True):
                     use_container_width=True,
                     hide_index=True,
                     column_config={
-                        f"PyPI downloads ({_gh_time})": st.column_config.NumberColumn(format="%,d"),
+                        "Combined downloads (PyPI+npm windowed, Docker/NuGet/GH cumul.)":
+                            st.column_config.NumberColumn(format="%,d"),
                         f"Forks ({_gh_time})": st.column_config.NumberColumn(format="%,d"),
                         f"Prod issues ({_gh_time})": st.column_config.NumberColumn(format="%,d"),
                         "Engagement (forks + issues)": st.column_config.NumberColumn(format="%,d"),
                     },
                 )
             else:
-                st.info("Not enough overlapping PyPI + GitHub data for selected vendors.")
+                st.info("Not enough overlapping download + GitHub data for selected vendors.")
 
     # ── Developer Lock-in Analysis ────────────────────────────────────
     with st.expander("Developer Lock-in Analysis", expanded=True):

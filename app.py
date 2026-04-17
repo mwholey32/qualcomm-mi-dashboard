@@ -21,6 +21,7 @@ Data comes from the parquet snapshots in ./data. Run the collectors first:
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
@@ -831,8 +832,14 @@ with _hdr_left:
     st.markdown("## Developer Ecosystem")
     st.caption("On-device AI Market Intelligence")
     meta = load_run_metadata()
-    _last_run = meta.get("run_finished_utc", "unknown") if meta else "unknown"
-    st.caption(f"Last refresh: {_last_run}")
+    _last_run = meta.get("run_finished_utc") if meta else None
+    if not _last_run:
+        # Fallback: use the most recent parquet file modification time
+        _parquet_files = list(DATA_DIR.glob("*.parquet"))
+        if _parquet_files:
+            _newest = max(f.stat().st_mtime for f in _parquet_files)
+            _last_run = datetime.fromtimestamp(_newest, tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    st.caption(f"Last refresh: {_last_run or 'unknown'}")
 with _hdr_right:
     if st.button("Refresh data", key="refresh_btn"):
         import subprocess
